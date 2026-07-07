@@ -42,7 +42,7 @@ export function PublicThread({ label, topic, tweets, token, txUrl, chained, slug
       </Flex>
 
       <Flex justify="center" style={{ marginTop: 24 }}>
-        <a href="/"><Title level={4} style={{ margin: 0 }}>✍️ Create your own thread →</Title></a>
+        <a href={`/?ref=tg&src=${encodeURIComponent(slug)}`}><Title level={4} style={{ margin: 0 }}>✍️ Create your own thread →</Title></a>
       </Flex>
     </Flex>
   );
