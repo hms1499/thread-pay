@@ -9,9 +9,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
@@ -36,6 +40,7 @@ jobs:
 
   contracts:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: contracts
@@ -50,7 +55,7 @@ jobs:
       - run: npm test
       - name: Install Clarinet
         run: |
-          curl -sSL https://github.com/hirosystems/clarinet/releases/download/v3.14.1/clarinet-linux-x64-glibc.tar.gz -o /tmp/clarinet.tar.gz
+          curl -fsSL https://github.com/hirosystems/clarinet/releases/download/v3.14.1/clarinet-linux-x64-glibc.tar.gz -o /tmp/clarinet.tar.gz
           tar -xzf /tmp/clarinet.tar.gz -C /tmp
           sudo mv /tmp/clarinet /usr/local/bin/clarinet
           clarinet --version
