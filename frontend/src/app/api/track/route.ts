@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       max: RATE_LIMIT_TRACK_MAX, windowSec: RATE_LIMIT_TRACK_WINDOW_SEC,
     });
     if (rl.allowed) {
-      let body: { event?: unknown; variant?: unknown };
+      let body: { event?: unknown; variant?: unknown; source_slug?: unknown };
       try {
         body = JSON.parse(await req.text());
       } catch {
@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
       }
       const event = typeof body?.event === 'string' ? body.event : '';
       const variant = typeof body?.variant === 'string' ? body.variant : '';
-      await recordEvent(event, variant);
+      const sourceSlug = typeof body?.source_slug === 'string' ? body.source_slug : undefined;
+      await recordEvent(event, variant, sourceSlug);
     }
   } catch (e) {
     log.warn('track.unhandled_error', { err: e });

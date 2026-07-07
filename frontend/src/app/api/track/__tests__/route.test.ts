@@ -25,14 +25,22 @@ describe('POST /api/track', () => {
   it('records a valid beacon and returns 204', async () => {
     const res = await POST(req(JSON.stringify({ event: 'backlink_land', variant: 'thread' })));
     expect(res.status).toBe(204);
-    expect(recordEvent).toHaveBeenCalledWith('backlink_land', 'thread');
+    expect(recordEvent).toHaveBeenCalledWith('backlink_land', 'thread', undefined);
   });
 
   it('returns 204 and still calls recordEvent (which drops it) for an unknown variant', async () => {
     const res = await POST(req(JSON.stringify({ event: 'backlink_land', variant: 'evil' })));
     expect(res.status).toBe(204);
     // The route forwards raw strings; the allowlist lives in recordEvent.
-    expect(recordEvent).toHaveBeenCalledWith('backlink_land', 'evil');
+    expect(recordEvent).toHaveBeenCalledWith('backlink_land', 'evil', undefined);
+  });
+
+  it('forwards source_slug when present', async () => {
+    const res = await POST(req(JSON.stringify({
+      event: 'backlink_land', variant: 'thread', source_slug: 'abc123',
+    })));
+    expect(res.status).toBe(204);
+    expect(recordEvent).toHaveBeenCalledWith('backlink_land', 'thread', 'abc123');
   });
 
   it('returns 204 and does not record when rate-limited', async () => {
