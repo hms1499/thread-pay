@@ -67,4 +67,40 @@ editor (no automated runner). Current:
 - `0003_generations_regen_count.sql` — adds `regen_count` (default 0).
 - `0010_events.sql` — append-only `events(event, variant, created_at)` for backlink landing instrumentation; RLS-locked (service-role only).
 
+### Backlink attribution queries
+
+`events.source_slug` ties a landing to the shared thread that drove it (`variant`:
+`thread` = reach, a view of `/t/<slug>`; `home` = intent, a thread→home click-through).
+Run these in the Supabase SQL editor (service-role only).
+
+Landings per thread, split by reach vs intent:
+
+```sql
+select source_slug, variant, count(*)
+from events
+where event = 'backlink_land' and source_slug is not null
+group by source_slug, variant
+order by count(*) desc;
+```
+
+Reach vs intent totals (a rough loop-conversion signal):
+
+```sql
+select variant, count(*)
+from events
+where event = 'backlink_land'
+group by variant;
+```
+
+Top threads with the paying wallet behind each (join to generations):
+
+```sql
+select e.source_slug, count(*) as landings, g.payer_address
+from events e
+join generations g on g.share_slug = e.source_slug
+where e.event = 'backlink_land'
+group by e.source_slug, g.payer_address
+order by landings desc;
+```
+
 When you change a table, add a numbered migration file here and note it in this doc.
