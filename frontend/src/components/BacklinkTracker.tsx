@@ -1,19 +1,21 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { backlinkVariant } from '@/lib/track';
+import { buildLanding } from '@/lib/track';
 
-// Renders nothing. On a fresh landing that carries the backlink marker (?ref=tg), fire
-// exactly one fire-and-forget beacon recording the variant (home vs deep-link thread).
-// Reads window.location directly to avoid the useSearchParams Suspense requirement.
+// Renders nothing. On a fresh landing, fire exactly one fire-and-forget beacon. A
+// /t/<slug> page always records reach; any other path records intent only when it
+// carries the ?ref=tg marker. The landing decision (and slug attribution) lives in
+// buildLanding — this component is only the DOM glue. Reads window.location directly to
+// avoid the useSearchParams Suspense requirement.
 export function BacklinkTracker() {
   const fired = useRef(false);
   useEffect(() => {
     if (fired.current) return;
     fired.current = true;
-    if (new URLSearchParams(window.location.search).get('ref') !== 'tg') return;
-    const variant = backlinkVariant(window.location.pathname);
-    const body = JSON.stringify({ event: 'backlink_land', variant });
+    const landing = buildLanding(window.location.pathname, window.location.search);
+    if (!landing) return;
+    const body = JSON.stringify(landing);
     if (typeof navigator.sendBeacon === 'function') {
       navigator.sendBeacon('/api/track', new Blob([body], { type: 'application/json' }));
     } else {
