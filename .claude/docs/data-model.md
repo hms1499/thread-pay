@@ -66,6 +66,7 @@ editor (no automated runner). Current:
 - `0002_invoices_preview_hook.sql` — adds the nullable `preview_hook` column.
 - `0003_generations_regen_count.sql` — adds `regen_count` (default 0).
 - `0010_events.sql` — append-only `events(event, variant, created_at)` for backlink landing instrumentation; RLS-locked (service-role only).
+- `0011_events_source_slug.sql` — adds nullable `events.source_slug` (+ index) so a landing can be attributed to the shared thread that drove it; joins to `generations.share_slug`.
 
 ### Backlink attribution queries
 
