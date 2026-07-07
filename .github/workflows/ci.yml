@@ -33,3 +33,25 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+
+  contracts:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Install Clarinet
+        run: |
+          curl -sSL https://github.com/hirosystems/clarinet/releases/download/v3.14.1/clarinet-linux-x64-glibc.tar.gz -o /tmp/clarinet.tar.gz
+          tar -xzf /tmp/clarinet.tar.gz -C /tmp
+          sudo mv /tmp/clarinet /usr/local/bin/clarinet
+          clarinet --version
+      - run: clarinet check
