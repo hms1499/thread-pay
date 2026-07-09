@@ -17,6 +17,7 @@ export type Invoice = {
   preview_hook?: string | null;
   preview_outline?: string[] | null;
   language?: string | null;
+  variant_tones?: string[] | null;
 };
 
 export function isExpired(invoice: Pick<Invoice, 'expires_at'>): boolean {
@@ -38,6 +39,7 @@ export async function createInvoice(args: {
   priceSbtc: number;
   previewHook?: string | null;
   previewOutline?: string[] | null;
+  variantTones?: string[] | null;
 }): Promise<Invoice> {
   const invoice: Invoice = {
     invoice_id: crypto.randomBytes(32).toString('hex'),
@@ -49,6 +51,7 @@ export async function createInvoice(args: {
     expires_at: new Date(Date.now() + INVOICE_TTL_MINUTES * 60_000).toISOString(),
     preview_hook: args.previewHook ?? null,
     preview_outline: args.previewOutline ?? null,
+    variant_tones: args.variantTones ?? null,
   };
   const { error } = await supabase.from('invoices').insert(invoice);
   if (error) throw new Error(`createInvoice: ${error.message}`);
@@ -88,6 +91,8 @@ export async function releaseInvoice(invoiceId: string): Promise<void> {
   if (error) throw new Error(`releaseInvoice: ${error.message}`);
 }
 
+export type Variant = { tone: string; thread: string[] };
+
 export type Generation = {
   invoice_id: string;
   service_id: string;
@@ -98,6 +103,8 @@ export type Generation = {
   thread_content: string[];
   regen_count?: number;
   share_slug?: string | null;
+  variants?: Variant[] | null;
+  selected_tone?: string | null;
 };
 
 export async function getGeneration(invoiceId: string): Promise<Generation | null> {
@@ -139,5 +146,22 @@ export async function regenerateGeneration(
     .select('*')
     .maybeSingle();
   if (error) throw new Error(`regenerateGeneration: ${error.message}`);
+  return data;
+}
+
+// Swap the winning tone: point thread_content at the chosen variant's thread and
+// record it as selected_tone. The route has already verified ownership + that the
+// tone exists in variants, so this is a straight UPDATE. Returns the updated row,
+// or null if the invoice_id no longer matches.
+export async function selectVariant(
+  invoiceId: string, tone: string, thread: string[],
+): Promise<Generation | null> {
+  const { data, error } = await supabase
+    .from('generations')
+    .update({ selected_tone: tone, thread_content: thread })
+    .eq('invoice_id', invoiceId)
+    .select('*')
+    .maybeSingle();
+  if (error) throw new Error(`selectVariant: ${error.message}`);
   return data;
 }
