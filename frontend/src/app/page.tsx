@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Button, Checkbox, Typography, Flex, Statistic, App, Drawer } from 'antd';
+import { Button, Checkbox, Typography, Flex, Statistic, App, Drawer, Segmented } from 'antd';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { WalletOutlined, CopyOutlined, CheckOutlined, HistoryOutlined, TwitterOutlined } from '@ant-design/icons';
 import { ThreadForm, type FormValues } from '@/components/ThreadForm';
@@ -56,6 +56,8 @@ export default function Home() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [unsharing, setUnsharing] = useState(false);
+  const [variants, setVariants] = useState<{ tone: string; thread: string[] }[] | null>(null);
+  const [selectedTone, setSelectedTone] = useState<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
 
   function refreshStats() {
@@ -125,6 +127,8 @@ export default function Home() {
       }
       const data = await genRes.json();
       setThread(data.thread);
+      setVariants(Array.isArray(data.variants) ? data.variants : null);
+      setSelectedTone(typeof data.selectedTone === 'string' ? data.selectedTone : null);
       setDisplayedInvoiceId(invoiceId);
       setRegenRemaining(MAX_FREE_REGENS);
       setPreviewHook(null);
@@ -179,6 +183,23 @@ export default function Home() {
       message.error(e instanceof Error ? e.message : 'Re-roll failed');
     } finally {
       setRegenerating(false);
+    }
+  }
+
+  async function selectTone(tone: string) {
+    if (!displayedInvoiceId || tone === selectedTone) return;
+    // Optimistic: show the chosen variant immediately, then persist the winner.
+    const local = variants?.find((v) => v.tone === tone);
+    if (local) { setThread(local.thread); setSelectedTone(tone); }
+    try {
+      const res = await authedFetch('/api/select-tone', 'POST', { invoiceId: displayedInvoiceId, tone });
+      if (res.status === 403) throw new Error('This thread was paid by a different wallet. Switch to the paying account and try again.');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
+      setThread(data.thread);
+      setSelectedTone(data.selectedTone);
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : 'Could not switch tone');
     }
   }
 
@@ -240,7 +261,7 @@ export default function Home() {
   }
 
   async function handleGenerate(values: FormValues) {
-    setError(undefined); setThread([]); setTxid(undefined); setPendingInvoiceId(undefined); setPreviewHook(null); setPreviewOutline(null); setPreviewPriceLabel(''); setDisplayedInvoiceId(undefined); setRegenRemaining(null); setShareUrl(null);
+    setError(undefined); setThread([]); setTxid(undefined); setPendingInvoiceId(undefined); setPreviewHook(null); setPreviewOutline(null); setPreviewPriceLabel(''); setDisplayedInvoiceId(undefined); setRegenRemaining(null); setShareUrl(null); setVariants(null); setSelectedTone(null);
     // Pin the chained-ness of the service we're generating with, so post-to-X
     // numbering matches the result once it lands.
     setThreadChained(services.find((s) => s.id === values.service)?.chained ?? true);
@@ -456,6 +477,15 @@ export default function Home() {
               />
             </Flex>
           </Flex>
+          {variants && variants.length > 1 && (
+            <Segmented
+              block
+              value={selectedTone ?? variants[0].tone}
+              onChange={(v) => selectTone(String(v))}
+              options={variants.map((x) => ({ label: x.tone, value: x.tone }))}
+              style={{ marginBottom: 4 }}
+            />
+          )}
           {thread.map((t, i) => (
               <TweetCard
                 key={i}
