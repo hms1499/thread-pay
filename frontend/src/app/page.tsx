@@ -58,6 +58,7 @@ export default function Home() {
   const [unsharing, setUnsharing] = useState(false);
   const [variants, setVariants] = useState<{ tone: string; thread: string[] }[] | null>(null);
   const [selectedTone, setSelectedTone] = useState<string | null>(null);
+  const [switchingTone, setSwitchingTone] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
 
   function refreshStats() {
@@ -187,10 +188,13 @@ export default function Home() {
   }
 
   async function selectTone(tone: string) {
-    if (!displayedInvoiceId || tone === selectedTone) return;
+    if (!displayedInvoiceId || tone === selectedTone || switchingTone) return;
     // Optimistic: show the chosen variant immediately, then persist the winner.
+    const previousThread = thread;
+    const previousSelectedTone = selectedTone;
     const local = variants?.find((v) => v.tone === tone);
     if (local) { setThread(local.thread); setSelectedTone(tone); }
+    setSwitchingTone(true);
     try {
       const res = await authedFetch('/api/select-tone', 'POST', { invoiceId: displayedInvoiceId, tone });
       if (res.status === 403) throw new Error('This thread was paid by a different wallet. Switch to the paying account and try again.');
@@ -200,6 +204,10 @@ export default function Home() {
       setSelectedTone(data.selectedTone);
     } catch (e) {
       message.error(e instanceof Error ? e.message : 'Could not switch tone');
+      setThread(previousThread);
+      setSelectedTone(previousSelectedTone);
+    } finally {
+      setSwitchingTone(false);
     }
   }
 
@@ -483,6 +491,7 @@ export default function Home() {
               value={selectedTone ?? variants[0].tone}
               onChange={(v) => selectTone(String(v))}
               options={variants.map((x) => ({ label: x.tone, value: x.tone }))}
+              disabled={switchingTone}
               style={{ marginBottom: 4 }}
             />
           )}
