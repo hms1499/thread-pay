@@ -185,6 +185,29 @@ describe('POST /api/generate — quote (branch 1)', () => {
       params: { topic: 'bitcoin layer 2', tone: 'educational', length: 5, language: 'auto' },
     }));
   });
+
+  it('multi-tone quote prices ×3 and tags variant_tones', async () => {
+    m(checkRateLimit).mockResolvedValue({ allowed: true, retryAfterSec: 0 });
+    m(invoices.createInvoice).mockImplementation(async (a) => ({
+      invoice_id: 'b'.repeat(64), service_id: a.serviceId, params: a.params,
+      price_stx: a.priceStx, price_sbtc: a.priceSbtc, status: 'pending',
+      expires_at: new Date(Date.now() + 60000).toISOString(),
+      preview_hook: null, preview_outline: null, variant_tones: a.variantTones ?? null,
+    }));
+
+    const res = await POST(req({
+      service: 'x-thread',
+      params: { topic: 'bitcoin layer 2', length: 5, language: 'auto', multiTone: true },
+    }));
+
+    expect(res.status).toBe(402);
+    const arg = m(invoices.createInvoice).mock.calls[0][0];
+    expect(arg.priceStx).toBe(100000 * 3);
+    expect(arg.priceSbtc).toBe(100 * 3);
+    expect(arg.variantTones).toEqual(['educational', 'funny', 'threadboi']);
+    const body = await res.json();
+    expect(body.priceStx).toBe(300000);
+  });
 });
 
 describe('POST /api/generate — verify + generate (branch 2)', () => {

@@ -10,7 +10,7 @@ import { clientIp, checkRateLimit } from '@/lib/rate-limit';
 import { log } from '@/lib/log';
 import {
   CONTRACT, SBTC_CONTRACT,
-  RATE_LIMIT_QUOTE_MAX, RATE_LIMIT_QUOTE_WINDOW_SEC,
+  RATE_LIMIT_QUOTE_MAX, RATE_LIMIT_QUOTE_WINDOW_SEC, TONES,
 } from '@/lib/config';
 
 export async function POST(req: NextRequest) {
@@ -37,7 +37,20 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ error: 'unknown service' }, { status: 400 });
     }
-    const v = def.validate(body.params);
+    // Multi-tone mode: one payment (×3) generates all three tones in parallel.
+    // Only services that actually expose a `tone` field support it.
+    const wantMulti = !!(body.params && (body.params as Record<string, unknown>).multiTone);
+    const hasTone = def.fields.some((f) => f.name === 'tone');
+    if (wantMulti && !hasTone) {
+      return NextResponse.json({ error: 'this service does not support tone variations' }, { status: 400 });
+    }
+    // Validate the base params. In multi-tone mode there is no chosen tone, so
+    // inject the canonical first tone purely to satisfy the service validator;
+    // the actual fan-out uses variant_tones at redeem time.
+    const rawParams = wantMulti
+      ? { ...(body.params as Record<string, unknown>), tone: TONES[0] }
+      : body.params;
+    const v = def.validate(rawParams);
     if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 });
 
     // Cap this unauthenticated branch per IP — only valid requests reach here, so junk
@@ -61,9 +74,12 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       log.warn('generate.preview_hook_failed', { err: e });
     }
+    const MULT = wantMulti ? 3 : 1;
     const invoice = await createInvoice({
       serviceId: def.id, params: v.params as Record<string, unknown>,
-      priceStx: def.priceStx, priceSbtc: def.priceSbtc, previewHook, previewOutline,
+      priceStx: def.priceStx * MULT, priceSbtc: def.priceSbtc * MULT,
+      previewHook, previewOutline,
+      variantTones: wantMulti ? [...TONES] : null,
     });
     return NextResponse.json({
       invoiceId: invoice.invoice_id,
