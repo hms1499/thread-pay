@@ -18,6 +18,7 @@ export type HistoryItem = {
   thread_content: string[];
   created_at: string;
   topic: string | null;
+  selected_tone: string | null;
 };
 
 // A raw generations row joined to its invoice. invoice_id is a unique FK, so
@@ -33,6 +34,7 @@ type RawRow = {
   thread_content: string[];
   created_at: string;
   invoices: InvoiceRel | InvoiceRel[] | null;
+  selected_tone: string | null;
 };
 
 export type InvoiceRel = { topic?: string | null; params?: Record<string, unknown> | null };
@@ -62,6 +64,7 @@ export function normalizeRow(raw: RawRow): HistoryItem {
     thread_content: raw.thread_content,
     created_at: raw.created_at,
     topic: displayTopic(rel ?? undefined),
+    selected_tone: raw.selected_tone ?? null,
   };
 }
 
@@ -83,7 +86,7 @@ export function buildKeysetFilter(cursor: HistoryCursor): string {
   );
 }
 
-const COLUMNS = 'id, invoice_id, service_id, token, amount, tx_id, thread_content, created_at, invoices(topic, params)';
+const COLUMNS = 'id, invoice_id, service_id, token, amount, tx_id, thread_content, created_at, selected_tone, invoices(topic, params)';
 
 export async function fetchHistoryPage(
   address: string,

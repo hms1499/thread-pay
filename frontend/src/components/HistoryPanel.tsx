@@ -17,6 +17,7 @@ type Item = {
   thread_content: string[];
   created_at: string;
   topic: string | null;
+  selected_tone: string | null;
 };
 
 // Legacy rows (and anything unrecognized) read as the original X-thread service.
@@ -106,7 +107,12 @@ export function HistoryPanel({ address, onSelect }: {
               }}
               style={{ cursor: 'pointer', padding: '10px 8px' }}
             >
-              <Text style={{ display: 'block' }}>{it.topic ?? '(unknown topic)'}</Text>
+              <Text style={{ display: 'block' }}>
+                {it.topic ?? '(unknown topic)'}
+                {it.selected_tone && (
+                  <Tag color="purple" style={{ marginLeft: 6 }}>3 tones</Tag>
+                )}
+              </Text>
               <Flex gap={8} align="center" style={{ marginTop: 4 }}>
                 <Tag variant="filled" color="blue">
                   {serviceLabel(it.service_id)}

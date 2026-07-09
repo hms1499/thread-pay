@@ -63,6 +63,15 @@ describe('normalizeRow', () => {
     expect(normalizeRow(rawRow()).service_id).toBe('hot-takes');
     expect(normalizeRow(rawRow({ service_id: undefined })).service_id).toBe('x-thread');
   });
+
+  it('normalizeRow surfaces selected_tone', () => {
+    const item = normalizeRow({
+      id: 1, invoice_id: 'x', service_id: 'x-thread', token: 'STX', amount: 1,
+      tx_id: 't', thread_content: ['a'], created_at: '2026-07-09T00:00:00Z',
+      invoices: { topic: 'hi', params: null }, selected_tone: 'funny',
+    } as unknown as Parameters<typeof normalizeRow>[0]);
+    expect(item.selected_tone).toBe('funny');
+  });
 });
 
 describe('deriveNextCursor', () => {
