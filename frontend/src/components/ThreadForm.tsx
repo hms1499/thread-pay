@@ -24,7 +24,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export type FormValues = { service: string; params: Record<string, unknown>; token: 'STX' | 'SBTC' };
+export type FormValues = { service: string; params: Record<string, unknown>; token: 'STX' | 'SBTC'; multiTone: boolean };
 
 // The generate card is driven by the service registry: pick a service, fill its
 // dynamic fields, choose a token, submit. Falls back gracefully if the registry
@@ -38,6 +38,7 @@ export function ThreadForm({ services, servicesError, onSubmit, disabled }: {
   const [selectedId, setSelectedId] = useState('x-thread');
   const [params, setParams] = useState<Record<string, unknown>>({});
   const [token, setToken] = useState<'STX' | 'SBTC'>('STX');
+  const [multiTone, setMultiTone] = useState(false);
 
   const selected = useMemo(
     () => services.find((s) => s.id === selectedId) ?? services[0],
@@ -48,7 +49,7 @@ export function ThreadForm({ services, servicesError, onSubmit, disabled }: {
   // the registry first loads). Keyed on the id so switching services resets cleanly.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (selected) setParams(defaultParams(selected.fields));
+    if (selected) { setParams(defaultParams(selected.fields)); setMultiTone(false); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
 
@@ -69,11 +70,13 @@ export function ThreadForm({ services, servicesError, onSubmit, disabled }: {
     );
   }
 
+  const hasTone = selected.fields.some((f) => f.name === 'tone');
   const invalid = clientValidate(selected.fields, params) !== null;
 
   function submit() {
     if (clientValidate(selected.fields, params)) return;
-    onSubmit({ service: selected.id, params, token });
+    const params2 = multiTone ? { ...params, multiTone: true } : params;
+    onSubmit({ service: selected.id, params: params2, token, multiTone });
   }
 
   return (
@@ -89,11 +92,27 @@ export function ThreadForm({ services, servicesError, onSubmit, disabled }: {
         )}
 
         <ServiceForm
-          fields={selected.fields}
+          fields={multiTone ? selected.fields.filter((f) => f.name !== 'tone') : selected.fields}
           params={params}
           onChange={(name, value) => setParams((p) => ({ ...p, [name]: value }))}
           disabled={disabled}
         />
+
+        {hasTone && (
+          <Flex vertical gap={8}>
+            <FieldLabel>Tones</FieldLabel>
+            <Segmented
+              block
+              value={multiTone ? 'all' : 'one'}
+              onChange={(v) => setMultiTone(v === 'all')}
+              disabled={disabled}
+              options={[
+                { label: 'One tone', value: 'one' },
+                { label: 'Compare all 3 (×3 price)', value: 'all' },
+              ]}
+            />
+          </Flex>
+        )}
 
         <Flex vertical gap={8}>
           <FieldLabel>Pay with</FieldLabel>
