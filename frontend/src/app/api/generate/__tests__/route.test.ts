@@ -400,4 +400,57 @@ describe('POST /api/generate — verify + generate (branch 2)', () => {
     expect(invoices.releaseInvoice).toHaveBeenCalledWith(INVOICE_ID);
     expect(invoices.saveGenerationAndConsume).not.toHaveBeenCalled();
   });
+
+  it('multi-tone redeem generates all tones in parallel and stores variants', async () => {
+    m(invoices.getInvoice).mockResolvedValue({
+      invoice_id: INVOICE_ID, service_id: 'x-thread',
+      params: { topic: 'bitcoin', length: 5, language: 'auto' },
+      price_stx: 300000, price_sbtc: 300, status: 'pending',
+      expires_at: new Date(Date.now() + 60000).toISOString(),
+      preview_hook: null, preview_outline: null,
+      variant_tones: ['educational', 'funny', 'threadboi'],
+    } as invoices.Invoice);
+    m(fetchReceipt).mockResolvedValue({ payer: 'ST1PAYER', token: 'STX', amount: 300000n } as never);
+    m(invoices.claimInvoice).mockResolvedValue(true);
+    // Real x-thread.generate calls generateThread; return a tone-tagged thread.
+    m(generateThread).mockImplementation(async (topic, tone) => [`${tone}-1`, `${tone}-2`]);
+    m(invoices.saveGenerationAndConsume).mockImplementation(async (g) => g);
+
+    const res = await POST(req({ invoiceId: INVOICE_ID, txId: 'tx' }));
+
+    expect(res.status).toBe(200);
+    expect(generateThread).toHaveBeenCalledTimes(3);
+    const saved = m(invoices.saveGenerationAndConsume).mock.calls[0][0];
+    expect(saved.variants).toHaveLength(3);
+    expect(saved.selected_tone).toBe('educational');
+    expect(saved.thread_content).toEqual(['educational-1', 'educational-2']);
+    const body = await res.json();
+    expect(body.selectedTone).toBe('educational');
+    expect(body.variants).toHaveLength(3);
+  });
+
+  it('multi-tone redeem tolerates one failed tone', async () => {
+    m(invoices.getInvoice).mockResolvedValue({
+      invoice_id: INVOICE_ID, service_id: 'x-thread',
+      params: { topic: 'bitcoin', length: 5, language: 'auto' },
+      price_stx: 300000, price_sbtc: 300, status: 'pending',
+      expires_at: new Date(Date.now() + 60000).toISOString(),
+      preview_hook: null, preview_outline: null,
+      variant_tones: ['educational', 'funny', 'threadboi'],
+    } as invoices.Invoice);
+    m(fetchReceipt).mockResolvedValue({ payer: 'ST1PAYER', token: 'STX', amount: 300000n } as never);
+    m(invoices.claimInvoice).mockResolvedValue(true);
+    m(generateThread).mockImplementation(async (topic, tone) => {
+      if (tone === 'funny') throw new Error('llm blip');
+      return [`${tone}-1`];
+    });
+    m(invoices.saveGenerationAndConsume).mockImplementation(async (g) => g);
+
+    const res = await POST(req({ invoiceId: INVOICE_ID, txId: 'tx' }));
+
+    expect(res.status).toBe(200);
+    const saved = m(invoices.saveGenerationAndConsume).mock.calls[0][0];
+    expect(saved.variants!.map((x) => x.tone)).toEqual(['educational', 'threadboi']);
+    expect(invoices.releaseInvoice).not.toHaveBeenCalled();
+  });
 });

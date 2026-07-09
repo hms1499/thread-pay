@@ -103,7 +103,10 @@ export async function POST(req: NextRequest) {
     // Already generated → return the cached result (avoids lost result / double request)
     const existing = await getGeneration(invoice.invoice_id);
     if (existing) {
-      return NextResponse.json({ thread: existing.thread_content, invoiceId: invoice.invoice_id });
+      return NextResponse.json({
+        thread: existing.thread_content, invoiceId: invoice.invoice_id,
+        variants: existing.variants ?? undefined, selectedTone: existing.selected_tone ?? undefined,
+      });
     }
     return NextResponse.json({ error: 'invoice already consumed' }, { status: 409 });
   }
@@ -111,7 +114,10 @@ export async function POST(req: NextRequest) {
     // Another request is generating → return result if ready.
     const existing = await getGeneration(invoice.invoice_id);
     if (existing) {
-      return NextResponse.json({ thread: existing.thread_content, invoiceId: invoice.invoice_id });
+      return NextResponse.json({
+        thread: existing.thread_content, invoiceId: invoice.invoice_id,
+        variants: existing.variants ?? undefined, selectedTone: existing.selected_tone ?? undefined,
+      });
     }
     // Fresh lock → genuinely in progress, ask the client to retry shortly.
     // Stale lock → the previous worker crashed; fall through to re-verify the
@@ -144,14 +150,62 @@ export async function POST(req: NextRequest) {
   if (!claimed) {
     const existing = await getGeneration(invoice.invoice_id);
     if (existing) {
-      return NextResponse.json({ thread: existing.thread_content, invoiceId: invoice.invoice_id });
+      return NextResponse.json({
+        thread: existing.thread_content, invoiceId: invoice.invoice_id,
+        variants: existing.variants ?? undefined, selectedTone: existing.selected_tone ?? undefined,
+      });
     }
     return NextResponse.json({ error: 'generation in progress, retry shortly' }, { status: 202 });
   }
 
+  const def = getService(invoice.service_id);
+  const baseGen = {
+    invoice_id: invoice.invoice_id,
+    service_id: invoice.service_id,
+    payer_address: receipt.payer,
+    token: receipt.token,
+    amount: Number(receipt.amount),
+    tx_id: typeof body.txId === 'string' ? body.txId : '',
+  };
+
+  const tones = Array.isArray(invoice.variant_tones) ? invoice.variant_tones : null;
+
+  if (tones && tones.length > 0) {
+    // Multi-tone: fan out one generate per tone in parallel. Each tone writes its
+    // own hook (previewHook is tone-specific, so we don't reuse it here). One tone
+    // failing must not sink the whole request — the user paid for choice.
+    const settled = await Promise.allSettled(
+      tones.map((t) =>
+        def.generate({ ...(invoice.params ?? {}), tone: t }, { previewHook: null, previewOutline: null })),
+    );
+    const variants = settled
+      .map((r, i) => (r.status === 'fulfilled' ? { tone: tones[i], thread: r.value } : null))
+      .filter((x): x is { tone: string; thread: string[] } => x !== null);
+
+    if (variants.length === 0) {
+      await releaseInvoice(invoice.invoice_id);
+      return NextResponse.json(
+        { error: 'generation failed, payment preserved, retry: all tones failed' },
+        { status: 500 },
+      );
+    }
+
+    const winner = variants[0];
+    const gen = await saveGenerationAndConsume({
+      ...baseGen,
+      thread_content: winner.thread,
+      variants,
+      selected_tone: winner.tone,
+    });
+    return NextResponse.json({
+      thread: gen.thread_content, invoiceId: invoice.invoice_id,
+      variants: gen.variants, selectedTone: gen.selected_tone,
+    });
+  }
+
+  // Single-tone (unchanged behavior).
   let thread: string[];
   try {
-    const def = getService(invoice.service_id);
     thread = await def.generate(invoice.params ?? {}, { previewHook: invoice.preview_hook ?? null, previewOutline: invoice.preview_outline ?? null });
   } catch (e) {
     // LLM failed → release the lock so the user can retry for free (receipt stays on-chain).
@@ -163,16 +217,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const gen = await saveGenerationAndConsume({
-    invoice_id: invoice.invoice_id,
-    service_id: invoice.service_id,
-    payer_address: receipt.payer,
-    token: receipt.token,
-    amount: Number(receipt.amount),
-    tx_id: typeof body.txId === 'string' ? body.txId : '',
-    thread_content: thread,
-  });
-
+  const gen = await saveGenerationAndConsume({ ...baseGen, thread_content: thread });
   return NextResponse.json({ thread: gen.thread_content, invoiceId: invoice.invoice_id });
   } catch (e) {
     // Unwrapped failures (DB, on-chain read, parsing) would otherwise surface as
