@@ -179,6 +179,8 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
       setThread(data.thread);
+      setVariants(null);
+      setSelectedTone(null);
       setRegenRemaining(data.regenRemaining);
     } catch (e) {
       message.error(e instanceof Error ? e.message : 'Re-roll failed');
@@ -260,6 +262,8 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
       setThread(data.thread);
+      setVariants(null);
+      setSelectedTone(null);
       setRegenRemaining(data.regenRemaining);
     } catch (e) {
       message.error(e instanceof Error ? e.message : 'Re-roll failed');
@@ -534,7 +538,7 @@ export default function Home() {
       >
         <HistoryPanel
           address={address}
-          onSelect={(t, invoiceId) => { setThread(t); setPhase('done'); setDisplayedInvoiceId(invoiceId); setRegenRemaining(null); setThreadChained(true); setHistoryOpen(false); setShareUrl(null); }}
+          onSelect={(t, invoiceId) => { setThread(t); setPhase('done'); setDisplayedInvoiceId(invoiceId); setRegenRemaining(null); setThreadChained(true); setHistoryOpen(false); setShareUrl(null); setVariants(null); setSelectedTone(null); }}
         />
       </Drawer>
 

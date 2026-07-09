@@ -158,7 +158,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'generation in progress, retry shortly' }, { status: 202 });
   }
 
-  const def = getService(invoice.service_id);
+  let def;
+  try {
+    def = getService(invoice.service_id);
+  } catch (e) {
+    await releaseInvoice(invoice.invoice_id);
+    const message = e instanceof Error ? e.message : 'unknown service';
+    return NextResponse.json(
+      { error: `generation failed, payment preserved, retry: ${message}` },
+      { status: 500 },
+    );
+  }
   const baseGen = {
     invoice_id: invoice.invoice_id,
     service_id: invoice.service_id,

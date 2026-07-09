@@ -401,6 +401,21 @@ describe('POST /api/generate — verify + generate (branch 2)', () => {
     expect(invoices.saveGenerationAndConsume).not.toHaveBeenCalled();
   });
 
+  it('unknown service_id after claim -> releases invoice for free retry, returns 500', async () => {
+    vi.spyOn(registry, 'getService').mockImplementation(() => {
+      throw new Error('unknown service');
+    });
+    m(invoices.getInvoice).mockResolvedValue(baseInvoice({ service_id: 'ghost-service' }));
+    m(invoices.isExpired).mockReturnValue(false);
+    m(fetchReceipt).mockResolvedValue(stxReceipt);
+    m(invoices.claimInvoice).mockResolvedValue(true);
+    const res = await POST(req({ invoiceId: INVOICE_ID }));
+    expect(res.status).toBe(500);
+    expect(invoices.releaseInvoice).toHaveBeenCalledWith(INVOICE_ID);
+    expect(invoices.saveGenerationAndConsume).not.toHaveBeenCalled();
+    expect(generateThread).not.toHaveBeenCalled();
+  });
+
   it('multi-tone redeem generates all tones in parallel and stores variants', async () => {
     m(invoices.getInvoice).mockResolvedValue({
       invoice_id: INVOICE_ID, service_id: 'x-thread',
