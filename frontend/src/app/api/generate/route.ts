@@ -9,7 +9,7 @@ import { assertServerEnv } from '@/lib/env';
 import { clientIp, checkRateLimit } from '@/lib/rate-limit';
 import { log } from '@/lib/log';
 import {
-  CONTRACT, SBTC_CONTRACT,
+  CONTRACT, SBTC_CONTRACT, MULTI_TONE_MULTIPLIER,
   RATE_LIMIT_QUOTE_MAX, RATE_LIMIT_QUOTE_WINDOW_SEC, TONES,
 } from '@/lib/config';
 
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       log.warn('generate.preview_hook_failed', { err: e });
     }
-    const MULT = wantMulti ? 3 : 1;
+    const MULT = wantMulti ? MULTI_TONE_MULTIPLIER : 1;
     const invoice = await createInvoice({
       serviceId: def.id, params: v.params as Record<string, unknown>,
       priceStx: def.priceStx * MULT, priceSbtc: def.priceSbtc * MULT,

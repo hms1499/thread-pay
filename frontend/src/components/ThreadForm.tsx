@@ -7,6 +7,8 @@ import type { PublicServiceDef } from '@/lib/services/types';
 import { ServicePicker } from './ServicePicker';
 import { ServiceForm } from './ServiceForm';
 import { defaultParams, clientValidate } from '@/lib/services/form';
+import { quotePrice } from '@/lib/price';
+import { MULTI_TONE_MULTIPLIER } from '@/lib/config';
 
 const { Text } = Typography;
 
@@ -72,6 +74,9 @@ export function ThreadForm({ services, servicesError, onSubmit, disabled }: {
 
   const hasTone = selected.fields.some((f) => f.name === 'tone');
   const invalid = clientValidate(selected.fields, params) !== null;
+  // Quoted with the same multiplier the server prices the invoice with, so the button
+  // cannot promise a price the invoice will not honour.
+  const price = quotePrice(selected, token, multiTone);
 
   function submit() {
     if (clientValidate(selected.fields, params)) return;
@@ -108,7 +113,10 @@ export function ThreadForm({ services, servicesError, onSubmit, disabled }: {
               disabled={disabled}
               options={[
                 { label: 'One tone', value: 'one' },
-                { label: 'Compare all 3 (×3 price)', value: 'all' },
+                {
+                  label: `Compare all ${MULTI_TONE_MULTIPLIER} (×${MULTI_TONE_MULTIPLIER} price)`,
+                  value: 'all',
+                },
               ]}
             />
           </Flex>
@@ -138,8 +146,17 @@ export function ThreadForm({ services, servicesError, onSubmit, disabled }: {
           className="vg-glow-btn"
           style={{ marginTop: 4, height: 48, fontSize: 15, fontWeight: 600 }}
         >
-          Generate {selected.label}
+          Generate {selected.label} · {price.label}
         </Button>
+
+        {/* A visitor should never have to commit to find out what it costs. The free
+            preview is the reason to click, so it is stated next to the price, not
+            discovered later. */}
+        <Text
+          style={{ textAlign: 'center', fontSize: 12, color: 'var(--vg-ink-faint)' }}
+        >
+          Free preview first — you only pay if you like it.
+        </Text>
       </Flex>
     </div>
   );

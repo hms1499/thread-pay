@@ -52,6 +52,12 @@ export const GENERATING_STALE_MS = 2 * 60_000;
 
 export const TONES = ['educational', 'funny', 'threadboi'] as const;
 export type Tone = (typeof TONES)[number];
+
+// Multi-tone generates the topic in every tone in TONES, for that multiple of the price.
+// Single source of truth: the generate route prices the invoice with it and the form
+// quotes the button with it. Hardcoding a 3 on either side would let the price the user
+// is shown drift from the price they are actually charged.
+export const MULTI_TONE_MULTIPLIER = TONES.length;
 export const LENGTHS = [5, 8, 12] as const;
 
 // Output language for the generated thread. 'auto' keeps the model's default
