@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { buildLanding } from '@/lib/track';
+import { trackEvent } from '@/lib/track-beacon';
 
 // Renders nothing. On a fresh landing, fire exactly one fire-and-forget beacon. A
 // /t/<slug> page always records reach; any other path records intent only when it
@@ -15,12 +16,7 @@ export function BacklinkTracker() {
     fired.current = true;
     const landing = buildLanding(window.location.pathname, window.location.search);
     if (!landing) return;
-    const body = JSON.stringify(landing);
-    if (typeof navigator.sendBeacon === 'function') {
-      navigator.sendBeacon('/api/track', new Blob([body], { type: 'application/json' }));
-    } else {
-      void fetch('/api/track', { method: 'POST', body, keepalive: true }).catch(() => {});
-    }
+    trackEvent(landing.event, landing.variant, landing.source_slug);
   }, []);
   return null;
 }

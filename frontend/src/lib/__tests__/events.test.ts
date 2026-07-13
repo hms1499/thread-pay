@@ -45,3 +45,30 @@ describe('recordEvent', () => {
     expect(insert).toHaveBeenCalledWith({ event: 'backlink_land', variant: 'home' });
   });
 });
+
+// The payment funnel. `wallet_opened` vs `wallet_rejected` is the one thing the invoice
+// and generation tables cannot tell us: whether a user bailed BEFORE opening the wallet
+// (unconvinced) or AFTER seeing it (payment friction). Those are different problems.
+describe('recordEvent — wallet funnel', () => {
+  it('records wallet_opened for an STX payment', async () => {
+    await recordEvent('wallet_opened', 'stx');
+    expect(insert).toHaveBeenCalledWith({ event: 'wallet_opened', variant: 'stx' });
+  });
+
+  it('records wallet_rejected for an sBTC payment', async () => {
+    await recordEvent('wallet_rejected', 'sbtc');
+    expect(insert).toHaveBeenCalledWith({ event: 'wallet_rejected', variant: 'sbtc' });
+  });
+
+  // Variants are scoped per event, not a shared flat list — otherwise adding the token
+  // variants would silently let `backlink_land` be recorded with variant 'stx'.
+  it('rejects a wallet variant on a backlink event', async () => {
+    await recordEvent('backlink_land', 'stx');
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it('rejects a backlink variant on a wallet event', async () => {
+    await recordEvent('wallet_opened', 'home');
+    expect(from).not.toHaveBeenCalled();
+  });
+});

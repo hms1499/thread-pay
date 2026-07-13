@@ -17,6 +17,7 @@ import { OutlinePreview } from '@/components/OutlinePreview';
 import { ShareButton } from '@/components/ShareButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { connectWallet, disconnectWallet, getAddress, payInvoice, signInWithWallet, waitForTx } from '@/lib/stacks';
+import { trackEvent } from '@/lib/track-beacon';
 import { MAX_FREE_REGENS } from '@/lib/config';
 import { applyEdit, deleteTweet } from '@/lib/editThread';
 import { creditUrl, creditTweet } from '@/lib/postToX';
@@ -301,7 +302,18 @@ export default function Home() {
 
       setPhase('awaiting-signature');
       const amount = values.token === 'STX' ? quote.priceStx : quote.priceSbtc;
-      const tx = await payInvoice({ token: values.token, invoiceId: quote.invoiceId, amount });
+      // Funnel: the invoice row already records "was quoted" and a generation row records
+      // "was served". The gap between them is the wallet, and only the client can see it —
+      // opening the wallet and rejecting it leaves no server-side trace at all.
+      const tokenVariant = values.token === 'STX' ? 'stx' : 'sbtc';
+      trackEvent('wallet_opened', tokenVariant);
+      let tx: string;
+      try {
+        tx = await payInvoice({ token: values.token, invoiceId: quote.invoiceId, amount });
+      } catch (e) {
+        trackEvent('wallet_rejected', tokenVariant);
+        throw e;
+      }
       setTxid(tx);
 
       setPhase('confirming');
