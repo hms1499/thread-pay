@@ -1,7 +1,49 @@
 # x402 Agent-Payable API — Design
 
 **Date:** 2026-07-13
-**Status:** approved, ready for planning
+**Status: 🛑 SHELVED — do not implement. Kept as completed research.**
+
+## Why this was shelved (read this before reviving it)
+
+The design was approved, then killed by its own premise check. The pitch was "the
+cheapest way to find out whether agents will buy a thread." Reading the actual market
+answered that for free, before any code was written:
+
+The public x402 directory (`stx402.com/registry/list`, read 2026-07-13):
+
+| | |
+|---|---|
+| Endpoints registered | 202 — but **70 are category `test`** |
+| Distinct owners | **10** |
+| AI endpoints | **4** (3 of them owned by one person) |
+| Last registration of any kind | **2026-04-16** — three months of silence |
+
+Worse for the distribution story: the agent tooling that actually discovers endpoints
+(aibtc's `list_x402_endpoints`) reads from **four curated sources, not this registry**.
+Registering would not reliably surface ThreadGogh to the agents that do exist.
+
+The agent market on Stacks is pre-revenue. Building the endpoint would be opening a shop
+on a street we counted as empty. Effort went to prepaid credits instead — that attacks a
+**measured** 48% payment-step drop-off from real users.
+
+**Revive this if** the x402 registry starts growing again, or an agent counterparty asks
+for the endpoint directly.
+
+## ⚠️ Known bug in the design below
+
+The spec says the payment proof arrives in an **`X-PAYMENT`** header. **That is wrong.**
+Both `stx402.com` and `x402.aibtc.com` advertise the canonical v2 headers as:
+
+```
+request:  payment-signature
+response: payment-response
+required: payment-required
+```
+
+Using `X-PAYMENT` would mean no agent could ever pay. Fix this before implementing.
+Everything below is otherwise as-approved.
+
+---
 
 ## Problem
 
