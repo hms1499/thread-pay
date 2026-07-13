@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
-import { fetchOnChainStats } from '@/lib/onchain-stats';
+import { fetchDeliveredStats } from '@/lib/stats';
 
-// Stats reflect the on-chain truth (every paid pay-stx/pay-sbtc on the thread-pay
-// contract), not the Supabase `generations` table — direct/agent payments that never
-// redeem through the web app still count as real, paid revenue.
+// Stats count threads we actually DELIVERED, not payments that reached the contract.
+// Those are different numbers by ~50x — see the note in lib/stats.ts. The headline on a
+// crypto product has to be a claim the chain cannot contradict.
 export async function GET() {
   try {
-    const stats = await fetchOnChainStats();
+    const stats = await fetchDeliveredStats();
     return NextResponse.json(stats);
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'failed to read on-chain stats' },
+      { error: e instanceof Error ? e.message : 'failed to read stats' },
       { status: 500 },
     );
   }
