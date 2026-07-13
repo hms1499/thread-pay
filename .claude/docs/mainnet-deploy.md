@@ -1,5 +1,11 @@
 # Mainnet deployment runbook
 
+> **✅ ALREADY EXECUTED.** `thread-pay` is live at
+> `SP2CMK69QNY60HBG8BJ4X5TD7XX2ZT4XB62V13SV.thread-pay` and has served paid
+> generations. Step 3 (`set-sbtc-contract`) was applied — the contract points at
+> mainnet sBTC, verified on-chain. Keep this file as the procedure for a **v2
+> redeploy**, not as pending work.
+
 Pre-flight review verdict: the core flow (on-chain receipt as source of truth,
 two-layer double-spend protection, idempotent generation, late-payment honoring)
 is sound. The work below is the testnet→mainnet switch plus the security

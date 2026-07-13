@@ -75,9 +75,18 @@ Things to never change or assume without explicit reason:
   paid/consumed from client input alone.
 - **`SUPABASE_SERVICE_ROLE_KEY` is server-only.** Never import `lib/supabase.ts` into a
   client component or expose it via `NEXT_PUBLIC_*`.
-- **Network comes from `NEXT_PUBLIC_STACKS_NETWORK`** (default `testnet`), resolved once
-  in `lib/config.ts`. Mainnet isn't tested end-to-end; if you switch, also set a matching
-  `NEXT_PUBLIC_CONTRACT` and `NEXT_PUBLIC_HIRO_API`.
+- **This app is LIVE ON MAINNET with real money.** `SP2CMK69QNY60HBG8BJ4X5TD7XX2ZT4XB62V13SV.thread-pay`,
+  0.1 STX per generation, real users have paid. Treat any change to the payment path as a
+  production change. Network comes from `NEXT_PUBLIC_STACKS_NETWORK` (code default
+  `testnet`, but `.env.local` is `mainnet`), resolved once in `lib/config.ts`; a matching
+  `NEXT_PUBLIC_CONTRACT` and `NEXT_PUBLIC_HIRO_API` must be set with it. Use testnet for
+  free E2E testing.
+- **The deployed contract cannot enforce a specific invoice's price.** `min-price-stx` is
+  one global minimum (0.1 STX) while quotes vary per service and ×3 for multi-tone. An
+  underpaid-but-accepted payment strands the user's funds with no refund path. Fixing it
+  needs a redeploy — until then, **adding a service at a new price widens the exposure**.
+  See "Known limits" in `.claude/docs/contracts.md` and the
+  `frontend/scripts/audit-stranded.mjs` detector.
 - **Server env is validated at boot** (`instrumentation.ts` → `lib/env.ts`) and defensively
   in the generate route. A missing var fails fast with a clear message — keep it that way.
 - **Never commit secrets.** `.env*.local` and `contracts/settings/Testnet.toml` are
@@ -88,7 +97,7 @@ Things to never change or assume without explicit reason:
 - [`.claude/docs/architecture.md`](.claude/docs/architecture.md) — repo layout, request
   lifecycle, the full x402 flow and error-status map.
 - [`.claude/docs/contracts.md`](.claude/docs/contracts.md) — Clarity contracts,
-  functions, error codes, receipt model, deployed testnet address.
+  functions, error codes, receipt model, live mainnet address + known limits.
 - [`.claude/docs/payments.md`](.claude/docs/payments.md) — wallet connect, post-conditions
   with `Pc`, `waitForTx` states, slow-confirmation recovery.
 - [`.claude/docs/data-model.md`](.claude/docs/data-model.md) — Supabase schema, invoice

@@ -10,7 +10,7 @@ threadpay/
 │   │   ├── mock-sbtc.clar      # SIP-010 mock for simnet tests
 │   │   └── thread-pay.clar     # main payment + receipt contract
 │   ├── tests/thread-pay.test.ts
-│   └── deployments/            # generated plans (simnet, testnet)
+│   └── deployments/            # generated plans (simnet, testnet, mainnet)
 └── frontend/               # Next.js 16 app
     └── src/
         ├── lib/

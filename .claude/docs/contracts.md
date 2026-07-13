@@ -2,11 +2,55 @@
 
 Project: `contracts/` (Clarinet, Clarity v4). Three contracts.
 
-## Deployed (testnet)
+## Deployed
 
-- `thread-pay`: **`ST2CMK69QNY60HBG8BJ4X5TD7XX2ZT4XB4PBYSC2.thread-pay`**
-- `owner` and `treasury` default to the deployer (the address above).
-- The frontend reads the contract id from `NEXT_PUBLIC_CONTRACT`.
+**The app runs on mainnet.** The contract is live and has served paid generations.
+
+| Network | `thread-pay` contract id | Status |
+|---------|--------------------------|--------|
+| **mainnet** | **`SP2CMK69QNY60HBG8BJ4X5TD7XX2ZT4XB62V13SV.thread-pay`** | **live — real STX** |
+| testnet | `ST2CMK69QNY60HBG8BJ4X5TD7XX2ZT4XB4PBYSC2.thread-pay` | kept for free E2E testing |
+
+Same deployer wallet on both networks (only the `SP`/`ST` prefix differs). The frontend
+reads the contract id from `NEXT_PUBLIC_CONTRACT` — it is not hardcoded anywhere.
+
+Live mainnet state (read from chain, not from env):
+
+| Data var | Value |
+|----------|-------|
+| `owner` | `SP2CMK69QNY60HBG8BJ4X5TD7XX2ZT4XB62V13SV` |
+| `treasury` | `SP2CMK69QNY60HBG8BJ4X5TD7XX2ZT4XB62V13SV` (same wallet as `owner`) |
+| `min-price-stx` | `u100000` (0.1 STX) |
+| `min-price-sbtc` | `u100` (100 sats) |
+| `sbtc-contract` | `SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token` (mainnet sBTC ✅) |
+
+Read any of these back with:
+
+```bash
+curl -s https://api.hiro.so/v2/data_var/SP2CMK69QNY60HBG8BJ4X5TD7XX2ZT4XB62V13SV/thread-pay/min-price-stx
+```
+
+### Known limits of the live contract
+
+Two gaps that cannot be fixed without a redeploy — know them before adding pricing:
+
+- **`min-price-*` is a single global minimum, so the contract cannot enforce the price of
+  a specific invoice.** The server quotes per service and multiplies by 3 for multi-tone
+  (0.3 STX), but the contract still only asserts `amount >= 0.1 STX`. A client that
+  underpays a 0.3 STX quote gets its payment **accepted on-chain** (funds move to
+  treasury, invoice id burned by `ERR-DUPLICATE-INVOICE`) while the server returns 402
+  forever — funds lost, no on-chain refund path. Today only an honest client prevents
+  this; no attacker profits from it, but any client bug strands a real user.
+  **Widen this gap every time you add a service at a new price.**
+- **`owner` cannot be rotated** — there is no `transfer-ownership`. Losing the owner key
+  permanently freezes `set-prices` / `set-treasury` / `set-sbtc-contract`. `owner` is also
+  `treasury`, so that one key holds the revenue too. `set-treasury` to a separate wallet
+  needs no redeploy and reduces the blast radius today.
+
+`frontend/scripts/audit-stranded.mjs` is the read-only detector for the first gap: it
+lists invoices with an on-chain receipt that never reached `consumed`. Last run: **0
+stranded** out of 25 invoices. Refunds, if ever needed, go out by hand from the treasury
+wallet (it is an EOA, not the contract — the contract never holds funds).
 
 ## `thread-pay.clar`
 
@@ -48,7 +92,10 @@ backend trusts; the DB only mirrors it.
 - **Invoice id is single-use on-chain.** A second `pay-*` with the same id fails with
   `u101` — this is the on-chain anti-replay guard.
 - Defaults: `min-price-stx = u100000` (0.1 STX), `min-price-sbtc = u100` (100 sats).
-- `sbtc-contract` default: `ST1F7QA2MDF17S807EPA36TSS8AMEFY4KA9TVGWXT.sbtc-token`.
+- `sbtc-contract` **source default is the testnet token** (`ST1F7QA2…sbtc-token`), so a
+  fresh mainnet deploy reverts every `pay-sbtc` with `u103` until `set-sbtc-contract` is
+  called. The live mainnet contract has already been pointed at mainnet sBTC — see
+  "Deployed" above.
 - `paid-at` is `burn-block-height`.
 
 ## `traits.clar`
