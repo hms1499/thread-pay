@@ -12,7 +12,7 @@ import { PostThreadModal } from '@/components/PostThreadModal';
 import { AppSplash } from '@/components/AppSplash';
 import { VanGoghCanvas } from '@/components/VanGoghCanvas';
 import { HistoryPanel } from '@/components/HistoryPanel';
-import { EmptyGallery } from '@/components/EmptyGallery';
+import { SampleThread } from '@/components/SampleThread';
 import { OutlinePreview } from '@/components/OutlinePreview';
 import { ShareButton } from '@/components/ShareButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -410,6 +410,12 @@ export default function Home() {
 
       <div style={{ marginBottom: 28 }} />
 
+      {/* ── Sample thread — BEFORE the form, deliberately ──
+          A cold visitor from X has to see what the product produces before being asked
+          to fill anything in. Show the work, then ask for the topic — not the reverse.
+          It yields the page the moment there is a real thread to show instead. */}
+      {thread.length === 0 && phase === 'idle' && <SampleThread />}
+
       {/* ── Form ── */}
       <div className="tp-rise" style={{ animationDelay: '0.08s' }}>
         <ThreadForm services={services} servicesError={servicesError} onSubmit={handleGenerate} disabled={busy} />
@@ -525,9 +531,6 @@ export default function Home() {
             ))}
         </Flex>
       )}
-
-      {/* ── Empty state — before the first generation ── */}
-      {thread.length === 0 && phase === 'idle' && <EmptyGallery />}
 
       {/* ── Post the whole thread to X, one tweet at a time ── */}
       <PostThreadModal thread={thread} chained={threadChained} credit={credit} open={postOpen} onClose={() => setPostOpen(false)} />
