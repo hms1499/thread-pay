@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CRAFT_GUIDE, ENDING_GUIDE } from '@/lib/generate-thread';
 import { repurposeThreadService as s, buildRepurposeSystem } from '../repurpose-thread';
 
 describe('repurpose-thread validate', () => {
@@ -44,5 +45,14 @@ describe('buildRepurposeSystem outline', () => {
     expect(s).toContain('Follow this outline');
     expect(s).toContain('1. First point');
     expect(s).toContain('2. Second point');
+  });
+});
+
+describe('buildRepurposeSystem craft rules', () => {
+  it('includes the craft guide and the natural ending rule', () => {
+    const system = buildRepurposeSystem(8, 'auto');
+    expect(system).toContain(CRAFT_GUIDE);
+    expect(system).toContain(ENDING_GUIDE);
+    expect(system).not.toContain('takeaway or CTA');
   });
 });

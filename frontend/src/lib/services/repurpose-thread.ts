@@ -1,6 +1,6 @@
 import { TONES, LENGTHS, LANGUAGE_CODES, PRICE_STX, PRICE_SBTC, type Tone, type LanguageCode } from '@/lib/config';
 import {
-  resolveLlmConfig, assertApiKey, callLlm, parseThreadJson, parseHook, parseHookAndOutline, languageInstruction, TONE_GUIDE,
+  resolveLlmConfig, assertApiKey, callLlm, parseThreadJson, parseHook, parseHookAndOutline, languageInstruction, TONE_GUIDE, CRAFT_GUIDE, ENDING_GUIDE,
 } from '@/lib/generate-thread';
 import type { ServiceDef, GenCtx, ValidateResult, PreviewResult } from './types';
 
@@ -11,10 +11,12 @@ export function buildRepurposeSystem(
 ): string {
   const parts = [
     'You are an expert X (Twitter) thread writer.',
+    CRAFT_GUIDE,
     'You are given a long source text. Distill it into a thread that captures its key points.',
     'Return ONLY a JSON object of the form {"tweets": ["...", "..."]} — one string per tweet.',
     'No markdown fences, no commentary, no numbering prefixes.',
-    'Tweet 1 must be a strong hook. The last tweet wraps up with a takeaway or CTA.',
+    'Tweet 1 must be a strong hook.',
+    ENDING_GUIDE,
     `Write about ${length} tweets. Each tweet must be under 270 characters.`,
   ];
   if (outline && outline.length) {
@@ -57,6 +59,7 @@ async function generatePreview(p: RepurposeParams): Promise<PreviewResult> {
   assertApiKey(config);
   const system = [
     'You are an expert X (Twitter) thread writer.',
+    CRAFT_GUIDE,
     `Read the source text and return ONLY {"hook":"...","outline":["...","..."]} for a ${p.length}-tweet thread that distills it.`,
     'hook is the opening tweet, under 270 characters.',
     `outline has ${p.length} short titles (max 8 words each), one per tweet in order; outline[0] summarizes the hook.`,
@@ -75,6 +78,7 @@ async function regenerateOne(p: RepurposeParams, thread: string[], i: number): P
   assertApiKey(config);
   const system = [
     'You are an expert X (Twitter) thread writer.',
+    CRAFT_GUIDE,
     'You are given a thread distilled from a source text and the 1-based position of ONE tweet to rewrite.',
     'Return ONLY {"tweet": "..."} — just the rewritten tweet. Keep the others as-is.',
     'Under 270 characters. No numbering prefixes, no commentary, no fences.',
