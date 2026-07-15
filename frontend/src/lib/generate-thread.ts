@@ -8,6 +8,19 @@ export const TONE_GUIDE: Record<Tone, string> = {
   threadboi: 'punchy growth-hacker style, bold hooks, strategic emoji (incl. 🧵)',
 };
 
+// Shared writing-craft rules injected into every prompt. One string so tests can
+// assert its presence and services can reuse it verbatim.
+export const CRAFT_GUIDE = [
+  'Write like a real person sharing hard-won experience, not a content marketer.',
+  'Banned phrases and tells (never use them or close variants): "Let\'s dive in",',
+  '"game-changer", "unlock the power", "In this thread", "Follow me for more",',
+  '"Thread 👇", opening every tweet with an emoji.',
+  'Every tweet must carry at least one concrete detail: a number, a real example,',
+  'a named tool, or a step the reader can take today.',
+  'Vary the rhythm — mix short punches with longer lines; never let two',
+  'consecutive tweets share the same skeleton.',
+].join(' ');
+
 // The system-prompt line that controls output language. A known code forces that
 // language; 'auto'/unknown/null defers to the topic's own language.
 export function languageInstruction(language?: string | null): string {
@@ -267,6 +280,7 @@ export function buildThreadPrompt(
   const hasOutline = !!(restOutline && restOutline.length);
   const system = [
     'You are an expert X (Twitter) thread writer.',
+    CRAFT_GUIDE,
     'Return ONLY a JSON object of the form {"tweets": ["...", "..."]} — one string per tweet.',
     'No markdown fences, no commentary, no numbering prefixes.',
     'Each tweet must be under 270 characters.',
@@ -293,6 +307,7 @@ export function buildHookPrompt(
 ): { system: string; user: string } {
   const system = [
     'You are an expert X (Twitter) thread writer.',
+    CRAFT_GUIDE,
     'Return ONLY a JSON object of the form {"tweet": "..."} — a single opening hook tweet.',
     'No markdown fences, no commentary, no numbering.',
     'The tweet must be under 270 characters and be a strong, scroll-stopping hook.',
@@ -316,6 +331,7 @@ export function buildHookOutlinePrompt(
 ): { system: string; user: string } {
   const system = [
     'You are an expert X (Twitter) thread writer.',
+    CRAFT_GUIDE,
     `Return ONLY a JSON object of the form {"hook": "...", "outline": ["...", "..."]} for a ${length}-tweet thread.`,
     'hook is the opening tweet — under 270 characters, scroll-stopping.',
     `outline has ${length} short titles (max 8 words each), one per tweet in order; outline[0] summarizes the hook.`,
@@ -342,6 +358,7 @@ export function buildRegeneratePrompt(
 ): { system: string; user: string } {
   const system = [
     'You are an expert X (Twitter) thread writer.',
+    CRAFT_GUIDE,
     'You are given an existing thread and the 1-based position of ONE tweet to rewrite.',
     'Return ONLY a JSON object of the form {"tweet": "..."} — just the rewritten tweet.',
     'Rewrite ONLY that tweet so it still fits its place in the thread; keep the others as-is.',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseThreadJson, resolveLlmConfig, extractText, parseHook, assembleThread, languageInstruction, assertApiKey, parseHookAndOutline, buildThreadPrompt, buildHookPrompt, buildHookOutlinePrompt, buildRegeneratePrompt, TONE_GUIDE } from '../generate-thread';
+import { parseThreadJson, resolveLlmConfig, extractText, parseHook, assembleThread, languageInstruction, assertApiKey, parseHookAndOutline, buildThreadPrompt, buildHookPrompt, buildHookOutlinePrompt, buildRegeneratePrompt, TONE_GUIDE, CRAFT_GUIDE } from '../generate-thread';
 
 describe('languageInstruction', () => {
   it('forces a known language by its English name', () => {
@@ -281,5 +281,20 @@ describe('buildRegeneratePrompt', () => {
     expect(user).toContain('2. tweet b');
     expect(user).toContain('Rewrite tweet number 2.');
     expect(user).toContain(TONE_GUIDE.threadboi);
+  });
+});
+
+describe('CRAFT_GUIDE wiring', () => {
+  it('is present in all four builders\' system prompts', () => {
+    expect(buildThreadPrompt('t', 'educational', 5).system).toContain(CRAFT_GUIDE);
+    expect(buildHookPrompt('t', 'educational').system).toContain(CRAFT_GUIDE);
+    expect(buildHookOutlinePrompt('t', 'educational', 5).system).toContain(CRAFT_GUIDE);
+    expect(buildRegeneratePrompt('t', 'educational', ['a'], 0).system).toContain(CRAFT_GUIDE);
+  });
+
+  it('bans the classic AI tells and demands concrete detail', () => {
+    expect(CRAFT_GUIDE).toContain("Let's dive in");
+    expect(CRAFT_GUIDE).toContain('game-changer');
+    expect(CRAFT_GUIDE).toContain('concrete detail');
   });
 });
