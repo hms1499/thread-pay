@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseThreadJson, resolveLlmConfig, extractText, parseHook, assembleThread, languageInstruction, assertApiKey, parseHookAndOutline, buildThreadPrompt, buildHookPrompt, buildHookOutlinePrompt, buildRegeneratePrompt, TONE_GUIDE, CRAFT_GUIDE, ENDING_GUIDE } from '../generate-thread';
+import { parseThreadJson, resolveLlmConfig, extractText, parseHook, assembleThread, languageInstruction, assertApiKey, parseHookAndOutline, buildThreadPrompt, buildHookPrompt, buildHookOutlinePrompt, buildRegeneratePrompt, TONE_GUIDE, CRAFT_GUIDE, ENDING_GUIDE, HOOK_GUIDE } from '../generate-thread';
 
 describe('languageInstruction', () => {
   it('forces a known language by its English name', () => {
@@ -218,7 +218,7 @@ describe('parseHookAndOutline', () => {
 describe('buildThreadPrompt', () => {
   it('builds a from-scratch prompt with no outline', () => {
     const { system, user } = buildThreadPrompt('AI agents', 'educational', 8);
-    expect(system).toContain('Tweet 1 must be a strong hook.');
+    expect(system).toContain('Tweet 1 is the hook.');
     expect(system).not.toContain('Follow the given outline');
     expect(user).toContain('Topic: AI agents');
     expect(user).toContain('Number of tweets: 8');
@@ -304,5 +304,18 @@ describe('ENDING_GUIDE wiring', () => {
     const { system } = buildThreadPrompt('t', 'educational', 5);
     expect(system).toContain(ENDING_GUIDE);
     expect(system).not.toContain('takeaway or CTA');
+  });
+});
+
+describe('HOOK_GUIDE wiring', () => {
+  it('is present in the three hook-producing builders', () => {
+    expect(buildThreadPrompt('t', 'educational', 5).system).toContain(HOOK_GUIDE);
+    expect(buildHookPrompt('t', 'educational').system).toContain(HOOK_GUIDE);
+    expect(buildHookOutlinePrompt('t', 'educational', 5).system).toContain(HOOK_GUIDE);
+  });
+
+  it('is absent when tweet 1 is already written', () => {
+    const { system } = buildThreadPrompt('t', 'educational', 5, { firstTweet: 'done' });
+    expect(system).not.toContain(HOOK_GUIDE);
   });
 });

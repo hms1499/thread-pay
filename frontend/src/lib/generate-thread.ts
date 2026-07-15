@@ -27,6 +27,16 @@ export const ENDING_GUIDE =
   'End on the sharpest insight of the thread — a line that lingers. ' +
   'Add a call to action only if it arises naturally; never bolt one on.';
 
+// Hook construction patterns. Injected wherever a prompt asks the model to
+// write tweet 1 from scratch (not when the hook is already written).
+export const HOOK_GUIDE = [
+  'Build the hook on one of these patterns (pick the strongest for the topic):',
+  'a specific surprising number; a claim that contradicts what most people',
+  'believe; a story that opens mid-action; or a promise of a concrete,',
+  'measurable outcome.',
+  'Never open with a greeting, a definition, or an announcement that a thread follows.',
+].join(' ');
+
 // The system-prompt line that controls output language. A known code forces that
 // language; 'auto'/unknown/null defers to the topic's own language.
 export function languageInstruction(language?: string | null): string {
@@ -292,7 +302,7 @@ export function buildThreadPrompt(
     'Each tweet must be under 270 characters.',
     firstTweet
       ? 'Tweet 1 is already written (given below). Write ONLY the remaining tweets that continue it; do NOT repeat tweet 1.'
-      : 'Tweet 1 must be a strong hook.',
+      : `Tweet 1 is the hook. ${HOOK_GUIDE}`,
     hasOutline
       ? 'Follow the given outline: write one tweet per outline point, in order, each tweet staying on its point.'
       : '',
@@ -316,7 +326,7 @@ export function buildHookPrompt(
     CRAFT_GUIDE,
     'Return ONLY a JSON object of the form {"tweet": "..."} — a single opening hook tweet.',
     'No markdown fences, no commentary, no numbering.',
-    'The tweet must be under 270 characters and be a strong, scroll-stopping hook.',
+    `The tweet must be under 270 characters. ${HOOK_GUIDE}`,
     languageInstruction(language),
   ].join(' ');
   const user = `Topic: ${topic}\nStyle: ${TONE_GUIDE[tone]}`;
@@ -339,7 +349,7 @@ export function buildHookOutlinePrompt(
     'You are an expert X (Twitter) thread writer.',
     CRAFT_GUIDE,
     `Return ONLY a JSON object of the form {"hook": "...", "outline": ["...", "..."]} for a ${length}-tweet thread.`,
-    'hook is the opening tweet — under 270 characters, scroll-stopping.',
+    `hook is the opening tweet — under 270 characters. ${HOOK_GUIDE}`,
     `outline has ${length} short titles (max 8 words each), one per tweet in order; outline[0] summarizes the hook.`,
     'No markdown fences, no commentary, no numbering prefixes.',
     languageInstruction(language),
