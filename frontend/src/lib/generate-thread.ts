@@ -1,11 +1,21 @@
 import { languageName, type Tone } from './config';
 
-// Shared tone descriptions fed into LLM prompts. Exported so per-service prompt
-// builders (x-thread, repurpose-thread, hot-takes) reuse one source of truth.
+// Shared tone personas fed into LLM prompts as `Style: ...`. Exported so
+// per-service prompt builders (x-thread, repurpose-thread, hot-takes) reuse
+// one source of truth.
 export const TONE_GUIDE: Record<Tone, string> = {
-  educational: 'clear, informative, expert but approachable tone',
-  funny: 'witty, meme-aware humor, still delivers real substance',
-  threadboi: 'punchy growth-hacker style, bold hooks, strategic emoji (incl. 🧵)',
+  educational:
+    'a practitioner who has actually done the thing, teaching it plainly. ' +
+    'Clear, informative, expert but approachable. Prefers numbers and named tools ' +
+    'over adjectives. Explains why before how, and never talks down to the reader.',
+  funny:
+    'a sharp comedy writer who genuinely knows the subject. Witty and meme-aware, ' +
+    'self-deprecating where it lands. Every joke smuggles in a real insight — ' +
+    'humor is the delivery, substance is the payload. Punchlines sit at tweet ends.',
+  threadboi:
+    'a growth-hacker who actually ships. Punchy, bold, confident, short lines. ' +
+    'Strategic emoji (incl. 🧵) but never emoji soup. Every big claim is backed ' +
+    'by a specific number or example in the same tweet. Writes hooks people screenshot.',
 };
 
 // Shared writing-craft rules injected into every prompt. One string so tests can

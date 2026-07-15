@@ -319,3 +319,14 @@ describe('HOOK_GUIDE wiring', () => {
     expect(system).not.toContain(HOOK_GUIDE);
   });
 });
+
+describe('TONE_GUIDE personas', () => {
+  it('describes each tone as a multi-sentence persona', () => {
+    for (const tone of ['educational', 'funny', 'threadboi'] as const) {
+      expect(TONE_GUIDE[tone].split('.').length).toBeGreaterThan(2);
+    }
+    expect(TONE_GUIDE.educational).toContain('practitioner');
+    expect(TONE_GUIDE.funny).toContain('comedy');
+    expect(TONE_GUIDE.threadboi).toContain('🧵');
+  });
+});
