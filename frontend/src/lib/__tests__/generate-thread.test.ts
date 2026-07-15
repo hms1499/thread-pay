@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseThreadJson, resolveLlmConfig, extractText, parseHook, assembleThread, languageInstruction, assertApiKey, parseHookAndOutline, buildThreadPrompt } from '../generate-thread';
+import { parseThreadJson, resolveLlmConfig, extractText, parseHook, assembleThread, languageInstruction, assertApiKey, parseHookAndOutline, buildThreadPrompt, buildHookPrompt, buildHookOutlinePrompt, buildRegeneratePrompt, TONE_GUIDE } from '../generate-thread';
 
 describe('languageInstruction', () => {
   it('forces a known language by its English name', () => {
@@ -245,5 +245,41 @@ describe('buildThreadPrompt', () => {
     expect(user).toContain('1. Point B');
     expect(user).toContain('2. Point C');
     expect(user).not.toContain('Hook point');
+  });
+});
+
+describe('buildHookPrompt', () => {
+  it('asks for a single hook tweet in the given tone', () => {
+    const { system, user } = buildHookPrompt('AI agents', 'funny');
+    expect(system).toContain('{"tweet": "..."}');
+    expect(user).toContain('Topic: AI agents');
+    expect(user).toContain(TONE_GUIDE.funny);
+  });
+
+  it('carries the language instruction', () => {
+    const { system } = buildHookPrompt('AI agents', 'funny', 'vi');
+    expect(system).toContain('in Vietnamese');
+  });
+});
+
+describe('buildHookOutlinePrompt', () => {
+  it('asks for a hook plus an outline sized to length', () => {
+    const { system, user } = buildHookOutlinePrompt('AI agents', 'educational', 8);
+    expect(system).toContain('{"hook": "...", "outline"');
+    expect(system).toContain('outline has 8 short titles');
+    expect(user).toContain('Topic: AI agents');
+    expect(user).toContain(TONE_GUIDE.educational);
+  });
+});
+
+describe('buildRegeneratePrompt', () => {
+  it('numbers the thread and names the tweet to rewrite (1-based)', () => {
+    const { system, user } = buildRegeneratePrompt(
+      'AI agents', 'threadboi', ['tweet a', 'tweet b', 'tweet c'], 1,
+    );
+    expect(system).toContain('{"tweet": "..."}');
+    expect(user).toContain('2. tweet b');
+    expect(user).toContain('Rewrite tweet number 2.');
+    expect(user).toContain(TONE_GUIDE.threadboi);
   });
 });

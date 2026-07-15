@@ -288,10 +288,9 @@ export function buildThreadPrompt(
   return { system, user };
 }
 
-// One free, cheap LLM call: just the opening hook tweet. Used at quote time.
-export async function generateHook(topic: string, tone: Tone, language?: string | null): Promise<string> {
-  const config = resolveLlmConfig(process.env);
-  assertApiKey(config);
+export function buildHookPrompt(
+  topic: string, tone: Tone, language?: string | null,
+): { system: string; user: string } {
   const system = [
     'You are an expert X (Twitter) thread writer.',
     'Return ONLY a JSON object of the form {"tweet": "..."} — a single opening hook tweet.',
@@ -300,17 +299,21 @@ export async function generateHook(topic: string, tone: Tone, language?: string 
     languageInstruction(language),
   ].join(' ');
   const user = `Topic: ${topic}\nStyle: ${TONE_GUIDE[tone]}`;
+  return { system, user };
+}
+
+// One free, cheap LLM call: just the opening hook tweet. Used at quote time.
+export async function generateHook(topic: string, tone: Tone, language?: string | null): Promise<string> {
+  const config = resolveLlmConfig(process.env);
+  assertApiKey(config);
+  const { system, user } = buildHookPrompt(topic, tone, language);
   const raw = await callLlm(config, system, user);
   return parseHook(raw);
 }
 
-// One LLM call producing the opening hook plus a short outline (one title per
-// tweet). Used at quote time to power the pre-payment preview.
-export async function generateHookAndOutline(
+export function buildHookOutlinePrompt(
   topic: string, tone: Tone, length: number, language?: string | null,
-): Promise<{ hook: string; outline: string[] }> {
-  const config = resolveLlmConfig(process.env);
-  assertApiKey(config);
+): { system: string; user: string } {
   const system = [
     'You are an expert X (Twitter) thread writer.',
     `Return ONLY a JSON object of the form {"hook": "...", "outline": ["...", "..."]} for a ${length}-tweet thread.`,
@@ -320,7 +323,34 @@ export async function generateHookAndOutline(
     languageInstruction(language),
   ].join(' ');
   const user = `Topic: ${topic}\nStyle: ${TONE_GUIDE[tone]}`;
+  return { system, user };
+}
+
+// One LLM call producing the opening hook plus a short outline (one title per
+// tweet). Used at quote time to power the pre-payment preview.
+export async function generateHookAndOutline(
+  topic: string, tone: Tone, length: number, language?: string | null,
+): Promise<{ hook: string; outline: string[] }> {
+  const config = resolveLlmConfig(process.env);
+  assertApiKey(config);
+  const { system, user } = buildHookOutlinePrompt(topic, tone, length, language);
   return parseHookAndOutline(await callLlm(config, system, user), length);
+}
+
+export function buildRegeneratePrompt(
+  topic: string, tone: Tone, thread: string[], index: number, language?: string | null,
+): { system: string; user: string } {
+  const system = [
+    'You are an expert X (Twitter) thread writer.',
+    'You are given an existing thread and the 1-based position of ONE tweet to rewrite.',
+    'Return ONLY a JSON object of the form {"tweet": "..."} — just the rewritten tweet.',
+    'Rewrite ONLY that tweet so it still fits its place in the thread; keep the others as-is.',
+    'It must be under 270 characters. No numbering prefixes, no commentary, no fences.',
+    languageInstruction(language),
+  ].join(' ');
+  const numbered = thread.map((t, i) => `${i + 1}. ${t}`).join('\n');
+  const user = `Topic: ${topic}\nStyle: ${TONE_GUIDE[tone]}\nThread:\n${numbered}\n\nRewrite tweet number ${index + 1}.`;
+  return { system, user };
 }
 
 // Rewrite a SINGLE tweet in place, given the whole thread for context. Returns the
@@ -331,16 +361,7 @@ export async function regenerateTweet(
 ): Promise<string> {
   const config = resolveLlmConfig(process.env);
   assertApiKey(config);
-  const system = [
-    'You are an expert X (Twitter) thread writer.',
-    'You are given an existing thread and the 1-based position of ONE tweet to rewrite.',
-    'Return ONLY a JSON object of the form {"tweet": "..."} — just the rewritten tweet.',
-    'Rewrite ONLY that tweet so it still fits its place in the thread; keep the others as-is.',
-    'It must be under 270 characters. No numbering prefixes, no commentary, no fences.',
-    languageInstruction(opts?.language),
-  ].join(' ');
-  const numbered = thread.map((t, i) => `${i + 1}. ${t}`).join('\n');
-  const user = `Topic: ${topic}\nStyle: ${TONE_GUIDE[tone]}\nThread:\n${numbered}\n\nRewrite tweet number ${index + 1}.`;
+  const { system, user } = buildRegeneratePrompt(topic, tone, thread, index, opts?.language);
   const raw = await callLlm(config, system, user);
   return parseHook(raw);
 }
