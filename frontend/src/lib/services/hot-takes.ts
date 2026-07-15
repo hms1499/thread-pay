@@ -1,6 +1,6 @@
 import { TONES, LANGUAGE_CODES, PRICE_STX, PRICE_SBTC, type Tone, type LanguageCode } from '@/lib/config';
 import {
-  resolveLlmConfig, assertApiKey, callLlm, parseThreadJson, parseHook, languageInstruction, TONE_GUIDE,
+  resolveLlmConfig, assertApiKey, callLlm, parseThreadJson, parseHook, languageInstruction, TONE_GUIDE, CRAFT_GUIDE,
 } from '@/lib/generate-thread';
 import type { ServiceDef, GenCtx, ValidateResult, PreviewResult } from './types';
 
@@ -10,6 +10,7 @@ const COUNTS = [3, 5, 8] as const;
 export function buildHotTakesSystem(count: number, language: LanguageCode): string {
   return [
     'You are a sharp X (Twitter) writer known for bold, standalone takes.',
+    CRAFT_GUIDE,
     `Return ONLY a JSON object {"tweets": ["...", "..."]} with exactly ${count} items.`,
     'Each item is an INDEPENDENT, standalone post — NOT a numbered thread, no "1/n", no references to the others.',
     'Each must be under 270 characters, punchy, and provocative but defensible.',
@@ -45,6 +46,7 @@ async function generatePreview(p: HotTakesParams): Promise<PreviewResult> {
   assertApiKey(config);
   const system = [
     'You are a sharp X (Twitter) writer known for bold takes.',
+    CRAFT_GUIDE,
     'Return ONLY {"tweet": "..."} — a single standalone hot take on the topic. Under 270 characters. No fences.',
     languageInstruction(p.language),
   ].join(' ');
@@ -57,6 +59,7 @@ async function regenerateOne(p: HotTakesParams, thread: string[], i: number): Pr
   assertApiKey(config);
   const system = [
     'You are a sharp X (Twitter) writer known for bold, standalone takes.',
+    CRAFT_GUIDE,
     'Rewrite ONE take so it stays standalone and distinct from the others. Return ONLY {"tweet": "..."}.',
     'Under 270 characters. No numbering, no commentary, no fences.',
     languageInstruction(p.language),

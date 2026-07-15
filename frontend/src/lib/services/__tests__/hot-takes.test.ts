@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CRAFT_GUIDE } from '@/lib/generate-thread';
 import { hotTakesService as s, buildHotTakesSystem } from '../hot-takes';
 
 describe('hot-takes validate', () => {
@@ -25,5 +26,11 @@ describe('hot-takes metadata + prompt', () => {
   });
   it('prompt asks for N standalone posts', () => {
     expect(buildHotTakesSystem(5, 'en')).toMatch(/standalone/i);
+  });
+});
+
+describe('buildHotTakesSystem craft rules', () => {
+  it('includes the shared craft guide', () => {
+    expect(buildHotTakesSystem(5, 'auto')).toContain(CRAFT_GUIDE);
   });
 });
