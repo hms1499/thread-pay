@@ -21,6 +21,12 @@ export const CRAFT_GUIDE = [
   'consecutive tweets share the same skeleton.',
 ].join(' ');
 
+// How a thread should end. Replaces the old forced "takeaway or CTA" closer,
+// which produced the same bolted-on final tweet every time.
+export const ENDING_GUIDE =
+  'End on the sharpest insight of the thread — a line that lingers. ' +
+  'Add a call to action only if it arises naturally; never bolt one on.';
+
 // The system-prompt line that controls output language. A known code forces that
 // language; 'auto'/unknown/null defers to the topic's own language.
 export function languageInstruction(language?: string | null): string {
@@ -290,7 +296,7 @@ export function buildThreadPrompt(
     hasOutline
       ? 'Follow the given outline: write one tweet per outline point, in order, each tweet staying on its point.'
       : '',
-    'The last tweet wraps up with a takeaway or CTA.',
+    ENDING_GUIDE,
     languageInstruction(opts?.language),
   ].filter(Boolean).join(' ');
   const outlineBlock = hasOutline

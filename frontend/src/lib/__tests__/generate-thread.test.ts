@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseThreadJson, resolveLlmConfig, extractText, parseHook, assembleThread, languageInstruction, assertApiKey, parseHookAndOutline, buildThreadPrompt, buildHookPrompt, buildHookOutlinePrompt, buildRegeneratePrompt, TONE_GUIDE, CRAFT_GUIDE } from '../generate-thread';
+import { parseThreadJson, resolveLlmConfig, extractText, parseHook, assembleThread, languageInstruction, assertApiKey, parseHookAndOutline, buildThreadPrompt, buildHookPrompt, buildHookOutlinePrompt, buildRegeneratePrompt, TONE_GUIDE, CRAFT_GUIDE, ENDING_GUIDE } from '../generate-thread';
 
 describe('languageInstruction', () => {
   it('forces a known language by its English name', () => {
@@ -296,5 +296,13 @@ describe('CRAFT_GUIDE wiring', () => {
     expect(CRAFT_GUIDE).toContain("Let's dive in");
     expect(CRAFT_GUIDE).toContain('game-changer');
     expect(CRAFT_GUIDE).toContain('concrete detail');
+  });
+});
+
+describe('ENDING_GUIDE wiring', () => {
+  it('replaces the forced CTA ending in the thread prompt', () => {
+    const { system } = buildThreadPrompt('t', 'educational', 5);
+    expect(system).toContain(ENDING_GUIDE);
+    expect(system).not.toContain('takeaway or CTA');
   });
 });
