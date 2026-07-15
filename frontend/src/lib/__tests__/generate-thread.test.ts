@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseThreadJson, resolveLlmConfig, extractText, parseHook, assembleThread, languageInstruction, assertApiKey, parseHookAndOutline, buildThreadPrompt, buildHookPrompt, buildHookOutlinePrompt, buildRegeneratePrompt, TONE_GUIDE, CRAFT_GUIDE, ENDING_GUIDE, HOOK_GUIDE } from '../generate-thread';
+import { parseThreadJson, resolveLlmConfig, extractText, parseHook, assembleThread, languageInstruction, assertApiKey, parseHookAndOutline, buildThreadPrompt, buildHookPrompt, buildHookOutlinePrompt, buildRegeneratePrompt, TONE_GUIDE, CRAFT_GUIDE, ENDING_GUIDE, HOOK_GUIDE, TONE_EXEMPLARS } from '../generate-thread';
 
 describe('languageInstruction', () => {
   it('forces a known language by its English name', () => {
@@ -328,5 +328,30 @@ describe('TONE_GUIDE personas', () => {
     expect(TONE_GUIDE.educational).toContain('practitioner');
     expect(TONE_GUIDE.funny).toContain('comedy');
     expect(TONE_GUIDE.threadboi).toContain('🧵');
+  });
+});
+
+describe('TONE_EXEMPLARS wiring', () => {
+  it('embeds only the selected tone\'s exemplar in the thread prompt', () => {
+    const { user } = buildThreadPrompt('t', 'educational', 5);
+    expect(user).toContain(TONE_EXEMPLARS.educational[0]);
+    expect(user).toContain(TONE_EXEMPLARS.educational[2]);
+    expect(user).not.toContain(TONE_EXEMPLARS.funny[0]);
+    expect(user).toContain('copy the voice, not the content');
+  });
+
+  it('hook builders embed the exemplar\'s first tweet only', () => {
+    const { user } = buildHookPrompt('t', 'threadboi');
+    expect(user).toContain(TONE_EXEMPLARS.threadboi[0]);
+    expect(user).not.toContain(TONE_EXEMPLARS.threadboi[1]);
+    const outlinePrompt = buildHookOutlinePrompt('t', 'threadboi', 5);
+    expect(outlinePrompt.user).toContain(TONE_EXEMPLARS.threadboi[0]);
+  });
+
+  it('has exactly three tweets per tone, each under 280 chars', () => {
+    for (const tone of ['educational', 'funny', 'threadboi'] as const) {
+      expect(TONE_EXEMPLARS[tone]).toHaveLength(3);
+      for (const t of TONE_EXEMPLARS[tone]) expect(t.length).toBeLessThanOrEqual(280);
+    }
   });
 });

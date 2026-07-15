@@ -18,6 +18,27 @@ export const TONE_GUIDE: Record<Tone, string> = {
     'by a specific number or example in the same tweet. Writes hooks people screenshot.',
 };
 
+// One mini exemplar thread per tone, used as a few-shot voice sample. Only the
+// selected tone's exemplar goes into a prompt. Deliberately about topics users
+// are unlikely to request, so the model copies the voice, not the content.
+export const TONE_EXEMPLARS: Record<Tone, string[]> = {
+  educational: [
+    'We cut production incidents 40% in one quarter. No new tools — one habit change: every PR under 200 lines.',
+    'Big PRs hide bugs. Reviewer attention fades after ~10 minutes, so a 1,000-line diff gets rubber-stamped. Split by behavior, not by file count.',
+    'Try it tomorrow: take your current branch and ship the smallest slice that works on its own. You merge faster and review better.',
+  ],
+  funny: [
+    "Our daily standup is 15 minutes. 14 of them are one guy explaining why Jira is wrong.",
+    "We tried async standups for a month. Turns out 'no blockers 👍' typed at 9:02 means exactly what it means spoken at 9:02 — nothing.",
+    "The fix was embarrassing: only meet when someone is actually blocked. Meetings dropped 80%. The work didn't notice.",
+  ],
+  threadboi: [
+    'My side project made $4,200 last month. It made $0 for the 11 months before that. What actually moved the needle 🧵',
+    'I stopped building features. I put the 5 questions every buyer asked straight onto the landing page. Conversion went 0.8% → 2.1%.',
+    'Ship the boring stuff: pricing page, FAQ, refund policy. Trust converts better than features.',
+  ],
+};
+
 // Shared writing-craft rules injected into every prompt. One string so tests can
 // assert its presence and services can reuse it verbatim.
 export const CRAFT_GUIDE = [
@@ -322,9 +343,12 @@ export function buildThreadPrompt(
   const outlineBlock = hasOutline
     ? `\nOutline (one tweet per point, in order):\n${restOutline!.map((o, i) => `${i + 1}. ${o}`).join('\n')}`
     : '';
+  const exemplarBlock =
+    `\nExample thread in this style (different topic — copy the voice, not the content):\n` +
+    TONE_EXEMPLARS[tone].map((t, i) => `${i + 1}. ${t}`).join('\n');
   const user = firstTweet
-    ? `Topic: ${topic}\nTweet 1 (already written): ${firstTweet}\nNumber of additional tweets to write: ${wanted}\nStyle: ${TONE_GUIDE[tone]}${outlineBlock}`
-    : `Topic: ${topic}\nNumber of tweets: ${length}\nStyle: ${TONE_GUIDE[tone]}${outlineBlock}`;
+    ? `Topic: ${topic}\nTweet 1 (already written): ${firstTweet}\nNumber of additional tweets to write: ${wanted}\nStyle: ${TONE_GUIDE[tone]}${outlineBlock}${exemplarBlock}`
+    : `Topic: ${topic}\nNumber of tweets: ${length}\nStyle: ${TONE_GUIDE[tone]}${outlineBlock}${exemplarBlock}`;
   return { system, user };
 }
 
@@ -339,7 +363,7 @@ export function buildHookPrompt(
     `The tweet must be under 270 characters. ${HOOK_GUIDE}`,
     languageInstruction(language),
   ].join(' ');
-  const user = `Topic: ${topic}\nStyle: ${TONE_GUIDE[tone]}`;
+  const user = `Topic: ${topic}\nStyle: ${TONE_GUIDE[tone]}\nExample hook in this style (different topic — copy the voice, not the content): "${TONE_EXEMPLARS[tone][0]}"`;
   return { system, user };
 }
 
@@ -364,7 +388,7 @@ export function buildHookOutlinePrompt(
     'No markdown fences, no commentary, no numbering prefixes.',
     languageInstruction(language),
   ].join(' ');
-  const user = `Topic: ${topic}\nStyle: ${TONE_GUIDE[tone]}`;
+  const user = `Topic: ${topic}\nStyle: ${TONE_GUIDE[tone]}\nExample hook in this style (different topic — copy the voice, not the content): "${TONE_EXEMPLARS[tone][0]}"`;
   return { system, user };
 }
 
